@@ -1,0 +1,44 @@
+\ Model _copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Maximize
+ 
+Subject To
+ R0: weight[0] + weight[1] + weight[2] + weight[3] = 1
+ qc0: 0.1005887188708711 Delta[0] + put_price[0] + [
+   - 1.50054e-06 Delta[0] ^2 ] = 268.027963282633
+ qc1: expectation[0] + 0.00843976847778743 Delta[0]
+   + 0.00495859577071186 put_price[0] + [ - 0.1460919367533598 Delta[0] ^2
+   ] = 0.1215043887916156
+ qc2: 0.1020824527707188 Delta[1] + put_price[1] + [
+   - 4.39838e-07 Delta[1] ^2 ] = 989.8931654950818
+ qc3: expectation[1] + 0.00334132669166562 Delta[1]
+   + 0.00367127398405828 put_price[1] + [ - 0.0578381846606172 Delta[1] ^2
+   ] = 0.0811064643157045
+ qc4: 0.10233484909956 Delta[2] + put_price[2] + [
+   - 3.55598e-07 Delta[2] ^2 ] = 1261.922183395817
+ qc5: expectation[2] + 0.00226456175458531 Delta[2]
+   + 0.00437943424734154 put_price[2] + [ - 0.0391994417258807 Delta[2] ^2
+   ] = 0.0364371720625335
+ qc6: 0.1021899480684202 Delta[3] + put_price[3] + [
+   - 3.19913e-06 Delta[3] ^2 ] = 137.7454719608979
+ qc7: expectation[3] + 0.00290597586995033 Delta[3]
+   + 0.0307031013008856 put_price[3] + [ - 0.0503022854379139 Delta[3] ^2 ]
+   = 0.00226244107909401
+ qc8: [ weight[0] * expectation[0] + weight[1] * expectation[1]
+   + weight[2] * expectation[2] + weight[3] * expectation[3] - C20 * C21 ]
+   >= 0
+Bounds
+ weight[0] free
+ expectation[0] free
+ expectation[1] free
+ expectation[2] free
+ expectation[3] free
+ 0.3 <= Delta[0] <= 0.7
+ 0.3 <= Delta[1] <= 0.7
+ 0.3 <= Delta[2] <= 0.7
+ 0.3 <= Delta[3] <= 0.7
+ put_price[0] free
+ put_price[1] free
+ put_price[2] free
+ put_price[3] free
+End
