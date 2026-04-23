@@ -53,7 +53,7 @@ def generate_Sigma(all_stocks, start, end):
             combs.append((t1, t2))
             c = stock_covar(get_hist(t1, start, end), get_hist(t2, start, end))
 
-            covar[i, i] = c[0,0]
+            covar[i, i] = c[0, 0]
             covar[i, j] = c[0, 1]
             covar[j, i] = c[1, 0]
             covar[j, j] = c[1, 1]
