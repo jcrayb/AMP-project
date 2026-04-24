@@ -13,11 +13,11 @@ def expected_returns(hist):
     return np.mean(array)
 
 def stock_covar(hist1, hist2):
-    common = hist1.merge(hist2, 'inner', left_on=hist1.index, right_on=hist2.index)
-    common_dates = common.key_0
+    common = hist1.merge(hist2, 'inner', left_index=True, right_index=True)
+    common_dates = common.index
     
-    hist1 = hist1.loc[hist1.index >= common_dates[0]]
-    hist2 = hist2.loc[hist2.index >= common_dates[0]]
+    hist1 = hist1.loc[(hist1.index >= common_dates[0]) & (hist1.index <= common_dates[-1])]
+    hist2 = hist2.loc[(hist2.index >= common_dates[0]) & (hist2.index <= common_dates[-1])]
     
     array1 = returns(hist1)
     array2 = returns(hist2)
@@ -75,3 +75,83 @@ def benchmark(stocks, weights, benchmark_ticker, start, end):
     df.benchmark *= 100
 
     return df
+
+def add_covariates_to_covar(Sigma, all_stocks, covars:list, start, end):
+    n1 = Sigma.shape[0] 
+    n2 = n1 + len(covars)
+    new_Sigma = np.zeros((n2, n2))
+
+    new_Sigma[:n1, :n1] = Sigma
+    for j, c in enumerate(covars):
+        c_idx1 = j + n1
+
+        for i, t1 in enumerate(all_stocks):
+            hist1 = get_hist(t1, start, end).reset_index()
+            hist1.Date = hist1.Date.apply(lambda x: x.replace(tzinfo=None))
+            hist1 = hist1.set_index("Date")
+
+            cov = stock_covar(hist1, c)
+
+
+            new_Sigma[i, c_idx1] = cov[0, 1]
+            new_Sigma[c_idx1, i] = cov[1, 0]
+            new_Sigma[c_idx1, c_idx1] = cov[1, 1]
+
+        for j2, c2 in enumerate(covars):
+            if j2 > j:
+                c_idx2 = j2 + n1
+                cov2 = stock_covar(c, c2)
+
+                new_Sigma[c_idx1, c_idx1] = cov2[0, 0]
+                new_Sigma[c_idx2, c_idx1] = cov2[0, 1]
+                new_Sigma[c_idx1, c_idx2] = cov2[1, 0]
+                new_Sigma[c_idx2, c_idx2] = cov2[1, 1]
+                                                 
+    Sxx = Sigma
+    Sxy = new_Sigma[:n1, n1:]
+    Syx = Sxy.T
+    Syy = new_Sigma[n1:, n1:]
+
+    return new_Sigma, (Sxx, Sxy, Syx, Syy)
+
+def add_covariates_to_mu(mu, covars:list):
+    n1 = mu.shape[0] 
+    n2 = n1 + len(covars)
+    new_mu = np.zeros((n2))
+
+    new_mu[:n1] = mu
+    for j, c in enumerate(covars):
+        c_idx1 = j + n1
+
+        new_mu[c_idx1] = expected_returns(c)
+    return new_mu, (mu, new_mu[n1:])
+
+def conditional_moments(mu, Sigma, a):
+    (Sxx, Sxy, Syx, Syy) = Sigma
+    (mu_x, mu_y) = mu
+    mu_a = mu_x + Sxy @ np.linalg.inv(Syy)@(a-mu_y)
+    Sigma_a = Sxx - Sxy@np.linalg.inv(Syy)@Syx
+
+    return mu_a, Sigma_a
+
+def load_pce():
+    pce = pd.read_csv('data/pce.csv')
+    shifted = np.zeros(len(pce.index))
+    shifted[:-1] = pce.PCECTPI[1:]
+    #returns = np.zeros(len(pce.index))
+    #returns[:-1] = -(pce.PCECTPI[:-1].to_numpy()-pce.PCECTPI[1:].to_numpy())/pce.PCECTPI[:-1].to_numpy()
+
+    pce['Close'] = shifted
+    pce['Open'] = pce.PCECTPI
+
+    pce.observation_date = pce.observation_date.apply(lambda x: dt.datetime.strptime(x, "%Y-%m-%d"))
+    pce = pce.set_index('observation_date')
+    pce = pce[['Close', 'Open']]
+    pce = pce.iloc[:-1]
+
+    return pce
+
+def load_ffr():
+    df = pd.read_csv('data/effr.csv')
+    df.observation_date = df.observation_date.apply(lambda x: dt.datetime.strptime(x, "%Y-%m-%d"))
+    return df.set_index('observation_date')
