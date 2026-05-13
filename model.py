@@ -102,19 +102,11 @@ m.addConstr(gp.quicksum([wi for wi in w]) == 1)
 
 Sigma_d = np.zeros((n, n), dtype=gp.Var)
 
-# alpha_i = Phi^{-1}(Delta_i) via PWL on Delta_i
-# x_pts_invCDF, y_pts_invCDF: PWL approximation of Phi^{-1} on (0,1)
-
-from math import pi, sqrt
-
-C_a = 4 / 1.7  # constant for alpha approximation
-C_p = 1 / sqrt(2 * pi)  # constant for phi approximation
-
 for i in range(n):
-    alpha_i = C_a * (Delta[i] - 0.5)           # linear expression, not a variable
-    phi_ai = m.addVar(lb=0, name=f"phi_{i}") # phi(alpha_i), quadratic in Delta_i
-    m.addConstr(phi_ai == C_p * (1 - alpha_i * alpha_i / 2),
-                name=f"phi_def_{i}")          # quadratic constraint
+    alpha_i = 4/1.7 * (Delta[i] - 0.5)           
+    phi_ai = m.addVar(lb=0, name=f"phi_{i}") 
+    m.addConstr(phi_ai == 1 / np.sqrt(2 * np.pi)  * (1 - alpha_i * alpha_i / 2),
+                name=f"phi_def_{i}")         
     
     var_i = m.addVar(lb=0, name=f"var_{i}")
     m.addConstr(
@@ -131,7 +123,7 @@ for i in range(n):
         rho_ij = Sigma[i, j] / np.sqrt(Sigma[i, i] * Sigma[j, j])
         sqrt_1mrho2 = np.sqrt(1 - rho_ij**2)
 
-        alpha_j = C_a * (Delta[j] - 0.5)
+        alpha_j = 4 / 1.7 * (Delta[j] - 0.5)
 
         covar_ij = m.addVar(lb=-GRB.INFINITY, name=f"covar_{i}_{j}")
         m.addConstr(
@@ -158,7 +150,7 @@ if mode == "max_mu":
 elif mode == "max_sharpe":
     m.setObjective(t, GRB.MAXIMIZE)
 elif mode == "min_var":
-    #m.addConstr(gp.quicksum([mu_d[i]*w[i] for i in range(n)]) >=0)
+    m.addConstr(gp.quicksum([mu_d[i]*w[i] for i in range(n)]) >=0)
     m.setObjective(var_norm, GRB.MINIMIZE)
 else:
     print("CHOOSE VALID MODE")
